@@ -4,12 +4,12 @@ set -e
 DOMAINS="$@"
 
 if [ -z "$DOMAINS" ]; then
-  echo "Usage: certbot-first-issue <domain1> [domain2 ...]"
+  echo "Error: DOMAINS required. Example: example.com www.example.com" >&2
   exit 1
 fi
 
 if [ -z "$LETSENCRYPT_EMAIL" ]; then
-  echo "LETSENCRYPT_EMAIL is required"
+  echo "Error: missing required variable: LETSENCRYPT_EMAIL" >&2
   exit 1
 fi
 

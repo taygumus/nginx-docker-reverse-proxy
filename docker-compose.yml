@@ -35,7 +35,6 @@ services:
     restart: unless-stopped
     env_file: .env
     environment:
-      SERVER_NAME: ${SERVER_NAME}
       LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
       CERTBOT_RENEW_INTERVAL: ${CERTBOT_RENEW_INTERVAL:-12h}
     tmpfs:
