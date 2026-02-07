@@ -32,6 +32,7 @@ services:
   certbot:
     <<: *default-logging
     image: certbot/certbot:v5.2.2
+    restart: unless-stopped
     env_file: .env
     environment:
       LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
@@ -42,6 +43,7 @@ services:
       - ./scripts:/scripts:ro
       - certbot_conf:/etc/letsencrypt
       - certbot_www:/var/www/certbot
+    entrypoint: ["/scripts/certbot/certbot-renew/certbot-renew.sh"]
     networks:
       - proxy
     deploy:

@@ -1,19 +1,11 @@
 #!/bin/sh
 set -e
 
-DOMAINS="$@"
+. /scripts/utils/check-required-vars.sh
 
-if [ -z "$DOMAINS" ]; then
-  echo "Error: DOMAINS required. Example: example.com www.example.com" >&2
-  exit 1
-fi
+check_required_vars "DOMAINS LETSENCRYPT_EMAIL"
 
-if [ -z "$LETSENCRYPT_EMAIL" ]; then
-  echo "Error: missing required variable: LETSENCRYPT_EMAIL" >&2
-  exit 1
-fi
-
-echo "Requesting certificate for: $DOMAINS"
+echo "Requesting certificate for domains: $DOMAINS"
 
 certbot certonly \
   --webroot \
