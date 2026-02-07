@@ -32,7 +32,6 @@ services:
   certbot:
     <<: *default-logging
     image: certbot/certbot:v5.2.2
-    restart: unless-stopped
     env_file: .env
     environment:
       LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
