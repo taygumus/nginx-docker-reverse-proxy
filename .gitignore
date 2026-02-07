@@ -1,6 +1,10 @@
 # Env files
 .env
 
+# Nginx templates
+*.template
+!*.template.example
+
 # Logs
 *.log
 
