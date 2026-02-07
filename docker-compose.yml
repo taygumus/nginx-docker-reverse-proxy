@@ -1,0 +1,61 @@
+x-logging: &default-logging
+  logging:
+    driver: json-file
+    options:
+      max-size: "${LOG_SIZE:-10m}"
+      max-file: "${LOG_FILES:-3}"
+
+services:
+  nginx:
+    <<: *default-logging
+    image: nginx:1.29.2-alpine
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    env_file: .env
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - certbot_conf:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    networks:
+      - proxy
+    deploy:
+      resources:
+        limits:
+          cpus: '${NGINX_CPUS:-0.5}'
+          memory: ${NGINX_MEM_LIMIT:-128M}
+
+  certbot:
+    <<: *default-logging
+    image: certbot/certbot:v5.2.2
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      SERVER_NAME: ${SERVER_NAME}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
+      CERTBOT_RENEW_INTERVAL: ${CERTBOT_RENEW_INTERVAL:-12h}
+    tmpfs:
+      - /var/lib/letsencrypt
+    volumes:
+      - ./scripts:/scripts:ro
+      - certbot_conf:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    networks:
+      - proxy
+    deploy:
+      resources:
+        limits:
+          cpus: '${CERTBOT_CPUS:-0.5}'
+          memory: ${CERTBOT_MEM_LIMIT:-128M}
+
+volumes:
+  certbot_conf:
+  certbot_www:
+
+networks:
+  proxy:
+    external: true

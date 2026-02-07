@@ -1,0 +1,19 @@
+# Env files
+.env
+
+# Logs
+*.log
+
+# System / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.bak
+
+# Build / temp files
+node_modules/
+dist/
+.build/
+tmp/
