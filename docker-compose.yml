@@ -8,7 +8,10 @@ x-logging: &default-logging
 services:
   nginx:
     <<: *default-logging
-    image: nginx:1.29.2-alpine
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    image: nginx-reverse-proxy:latest
     restart: unless-stopped
     init: true
     security_opt:
@@ -18,6 +21,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
+      - ./nginx/entrypoint:/docker-entrypoint.d:ro
       - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
       - certbot_conf:/etc/letsencrypt
       - certbot_www:/var/www/certbot
