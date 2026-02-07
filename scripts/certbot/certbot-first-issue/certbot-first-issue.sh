@@ -1,19 +1,27 @@
 #!/bin/sh
 set -e
 
-. /scripts/utils/check-required-vars.sh
+DOMAINS="$@"
 
-check_required_vars "SERVER_NAME LETSENCRYPT_EMAIL"
+if [ -z "$DOMAINS" ]; then
+  echo "Usage: certbot-first-issue <domain1> [domain2 ...]"
+  exit 1
+fi
 
-echo "Requesting first Let's Encrypt certificate for $SERVER_NAME"
+if [ -z "$LETSENCRYPT_EMAIL" ]; then
+  echo "LETSENCRYPT_EMAIL is required"
+  exit 1
+fi
+
+echo "Requesting certificate for: $DOMAINS"
 
 certbot certonly \
   --webroot \
   --webroot-path /var/www/certbot \
-  --domain "$SERVER_NAME" \
   --email "$LETSENCRYPT_EMAIL" \
   --agree-tos \
   --no-eff-email \
-  --non-interactive
+  --non-interactive \
+  $(for d in $DOMAINS; do printf -- "-d %s " "$d"; done)
 
-echo "Certificate successfully issued"
+echo "Certificate issued successfully"
