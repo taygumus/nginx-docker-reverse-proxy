@@ -37,7 +37,9 @@ jobs:
 
       - name: Validate Docker Compose config
         run: |
-          docker compose config > /dev/null
+          docker compose \
+            -f docker-compose.yml \
+            config > /dev/null
 
   makefile-lint:
     name: Makefile lint

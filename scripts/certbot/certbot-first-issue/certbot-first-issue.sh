@@ -7,6 +7,12 @@ check_required_vars "DOMAINS LETSENCRYPT_EMAIL"
 
 echo "Requesting certificate for domains: $DOMAINS"
 
+CERTBOT_DOMAINS=""
+
+for d in $DOMAINS; do
+  CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d $d"
+done
+
 certbot certonly \
   --webroot \
   --webroot-path /var/www/certbot \
@@ -14,6 +20,6 @@ certbot certonly \
   --agree-tos \
   --no-eff-email \
   --non-interactive \
-  $(for d in $DOMAINS; do printf -- "-d %s " "$d"; done)
+  $CERTBOT_DOMAINS
 
 echo "Certificate issued successfully"
