@@ -13,6 +13,14 @@ DOMAIN="$(echo "$CERT_SAN" | awk '{print $1}')"
 echo "Primary domain: $DOMAIN"
 echo "Subject Alternative Names: $CERT_SAN"
 
+TARGET_DIR="/etc/letsencrypt/live/$DOMAIN"
+RENEWAL_CONF="/etc/letsencrypt/renewal/$DOMAIN.conf"
+
+if [ -d "$TARGET_DIR" ] && [ ! -f "$RENEWAL_CONF" ]; then
+  echo "Dummy certificate detected for $DOMAIN, removing it"
+  rm -rf "$TARGET_DIR"
+fi
+
 set --
 for name in $CERT_SAN; do
   set -- "$@" -d "$name"
@@ -25,6 +33,5 @@ exec certbot certonly \
   --agree-tos \
   --no-eff-email \
   --non-interactive \
+  --cert-name "$DOMAIN" \
   "$@"
-
-echo "Certificate issued successfully"
