@@ -7,10 +7,9 @@ check_required_vars "DOMAINS LETSENCRYPT_EMAIL"
 
 echo "Requesting certificate for domains: $DOMAINS"
 
-CERTBOT_DOMAINS=""
-
+set --
 for d in $DOMAINS; do
-  CERTBOT_DOMAINS="$CERTBOT_DOMAINS -d $d"
+  set -- "$@" -d "$d"
 done
 
 certbot certonly \
@@ -20,6 +19,6 @@ certbot certonly \
   --agree-tos \
   --no-eff-email \
   --non-interactive \
-  $CERTBOT_DOMAINS
+  "$@"
 
 echo "Certificate issued successfully"
