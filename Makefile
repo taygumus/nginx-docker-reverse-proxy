@@ -11,9 +11,9 @@ logs:
 
 certbot-first-issue:
 	@$(COMPOSE) run --rm \
-		--entrypoint sh \
-		certbot \
-		/scripts/certbot/certbot-first-issue/certbot-first-issue.sh
+	  --entrypoint sh \
+	  certbot \
+	  /scripts/certbot/certbot-first-issue/certbot-first-issue.sh "$(CERT_SAN)"
 
 certbot-dry-run:
 	@$(COMPOSE) run --rm \

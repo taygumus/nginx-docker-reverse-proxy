@@ -1,9 +1,9 @@
 # Env files
 .env
 
-# Nginx templates
-*.template
-!*.template.example
+# Nginx conf
+nginx/default.conf
+!nginx/default.conf.example
 
 # Logs
 *.log

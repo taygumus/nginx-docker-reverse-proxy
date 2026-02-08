@@ -36,7 +36,8 @@ server {
 # - The service MUST be on the same Docker network
 # =====================================================================
 server {
-  listen 443 ssl http2;
+  listen 443 ssl;
+  http2 on;
   server_name example.com www.example.com;
 
   ssl_certificate     /etc/letsencrypt/live/example.com/fullchain.pem;
