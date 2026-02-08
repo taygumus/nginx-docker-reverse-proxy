@@ -1,0 +1,73 @@
+name: Lint checks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  shell-lint:
+    name: Shell script lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Run shellcheck
+        run: |
+          find . -type f -name "*.sh" -print0 | xargs -0 shellcheck
+
+  compose-lint:
+    name: Docker Compose lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install yamllint
+        run: sudo apt-get update && sudo apt-get install -y yamllint
+
+      - name: Run yamllint
+        run: yamllint docker-compose*.yml
+
+      - name: Prepare env file for compose config check
+        run: cp .env.example .env
+
+      - name: Validate Docker Compose config
+        run: |
+          docker compose \
+            -f docker-compose.yml \
+            config > /dev/null
+
+  makefile-lint:
+    name: Makefile lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install checkmake
+        run: |
+          git clone --depth 1 --branch 0.2.2 https://github.com/checkmake/checkmake /tmp/checkmake
+          cd /tmp/checkmake
+          go build -o checkmake ./cmd/checkmake
+          echo "/tmp/checkmake" >> "$GITHUB_PATH"
+
+      - name: Run checkmake
+        run: |
+          find . -type f \( -name "Makefile" -o -name "makefile" \) \
+            ! -path "./.git/*" \
+            -exec checkmake {} \;
+
+  markdown-lint:
+    name: Markdown lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install markdownlint-cli
+        run: sudo npm install -g markdownlint-cli
+
+      - name: Run markdownlint
+        run: markdownlint "**/*.md"
