@@ -1,16 +1,11 @@
-# =====================================================================
+# ============================================================
 # HTTP (port 80)
-# - Used ONLY for:
-#   1. Let's Encrypt ACME challenge
-#   2. Redirecting all traffic to HTTPS
-#
-# IMPORTANT:
-# - Every domain you want to secure MUST be listed here
-# - Certbot will FAIL if this block is missing or misconfigured
-# =====================================================================
+# - ACME challenge
+# - Redirect all traffic to HTTPS
+# ============================================================
 server {
-  listen 80;
-  server_name example.com www.example.com;
+  listen 80 default_server;
+  server_name _;
 
   location /.well-known/acme-challenge/ {
     root /var/www/certbot;
@@ -32,6 +27,7 @@ server {
 # - proxy_pass upstream
 #
 # NOTE:
+# - One HTTPS server block per certificate (SAN-based)
 # - The upstream MUST be a Docker service name
 # - The service MUST be on the same Docker network
 # =====================================================================
@@ -53,11 +49,13 @@ server {
   }
 }
 
-# =====================================================================
+# ============================================================
 # Additional applications
 #
-# For each new domain or subdomain:
-# 1. Add the domain to the HTTP server_name above (port 80)
-# 2. Create a NEW HTTPS server block (port 443)
-# 3. Request the certificate using certbot-first-issue
-# =====================================================================
+# For each new certificate:
+# 1. Create a NEW HTTPS server block (port 443)
+# 2. Set the primary domain and all SANs in server_name
+# 3. Issue the certificate using certbot-first-issue
+#
+# HTTP configuration does NOT need to be changed
+# ============================================================

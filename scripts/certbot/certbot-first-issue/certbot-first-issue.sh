@@ -17,7 +17,7 @@ TARGET_DIR="/etc/letsencrypt/live/$DOMAIN"
 RENEWAL_CONF="/etc/letsencrypt/renewal/$DOMAIN.conf"
 
 if [ -d "$TARGET_DIR" ] && [ ! -f "$RENEWAL_CONF" ]; then
-  echo "Dummy certificate detected for $DOMAIN, removing it"
+  echo "Dummy certificate detected for $DOMAIN, removing it..."
   rm -rf "$TARGET_DIR"
 fi
 
