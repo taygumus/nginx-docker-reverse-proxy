@@ -28,8 +28,7 @@ server {
 #
 # NOTE:
 # - One HTTPS server block per certificate (SAN-based)
-# - The upstream MUST be a Docker service name
-# - The service MUST be on the same Docker network
+# - The upstream MUST be a Docker service name reachable on the same Docker network
 # =====================================================================
 server {
   listen 443 ssl;
