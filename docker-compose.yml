@@ -22,7 +22,7 @@ services:
       - "443:443"
     volumes:
       - ./nginx/entrypoint:/docker-entrypoint.d:ro
-      - ./nginx/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - certbot_conf:/etc/letsencrypt
       - certbot_www:/var/www/certbot
     networks:

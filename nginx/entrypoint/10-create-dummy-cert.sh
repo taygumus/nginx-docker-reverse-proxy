@@ -8,8 +8,10 @@ if [ -z "$DOMAINS" ]; then
   exit 0
 fi
 
+DUMMY_BASE="/etc/letsencrypt/dummy/live"
+
 for domain in $DOMAINS; do
-  CERT_DIR="/etc/letsencrypt/live/$domain"
+  CERT_DIR="$DUMMY_BASE/$domain"
 
   if [ ! -f "$CERT_DIR/fullchain.pem" ]; then
     echo "Generating dummy certificate for $domain"
