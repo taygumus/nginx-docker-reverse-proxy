@@ -41,10 +41,10 @@ services:
     tmpfs:
       - /var/lib/letsencrypt
     volumes:
-      - ./scripts:/scripts:ro
+      - ./certbot:/certbot:ro
       - certbot_conf:/etc/letsencrypt
       - certbot_www:/var/www/certbot
-    entrypoint: ["/scripts/certbot/certbot-renew/certbot-renew.sh"]
+    entrypoint: ["/certbot/certbot-renew/certbot-renew.sh"]
     networks:
       - proxy
     deploy:

@@ -1,7 +1,7 @@
 #!/bin/sh
 set -e
 
-. /scripts/certbot/certbot-renew/lib/terminate.sh
+. /certbot/certbot-renew/lib/terminate.sh
 trap terminate TERM INT
 
 CERTBOT_RENEW_INTERVAL="${CERTBOT_RENEW_INTERVAL:-12h}"
