@@ -38,16 +38,13 @@ services:
     image: certbot/certbot:v5.2.2
     restart: unless-stopped
     env_file: .env
-    environment:
-      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
-      CERTBOT_RENEW_INTERVAL: ${CERTBOT_RENEW_INTERVAL:-12h}
     tmpfs:
       - /var/lib/letsencrypt
     volumes:
-      - ./scripts:/scripts:ro
+      - ./certbot:/certbot:ro
       - certbot_conf:/etc/letsencrypt
       - certbot_www:/var/www/certbot
-    entrypoint: ["/scripts/certbot/certbot-renew/certbot-renew.sh"]
+    entrypoint: ["/certbot/certbot-renew/certbot-renew.sh"]
     networks:
       - proxy
     deploy:

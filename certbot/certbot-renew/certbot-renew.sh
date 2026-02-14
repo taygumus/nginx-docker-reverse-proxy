@@ -1,11 +1,13 @@
 #!/bin/sh
 set -e
 
-. /scripts/certbot/certbot-renew/lib/terminate.sh
+. /certbot/certbot-renew/lib/terminate.sh
 trap terminate TERM INT
 
+CERTBOT_RENEW_INTERVAL="${CERTBOT_RENEW_INTERVAL:-12h}"
+
 echo "Certbot renewal service started"
-echo "Renewal interval: ${CERTBOT_RENEW_INTERVAL}"
+echo "Renewal interval: $CERTBOT_RENEW_INTERVAL"
 
 while true; do
   echo "Checking certificates..."
@@ -19,6 +21,6 @@ while true; do
     echo "Renewal returned non-zero (may be expected)"
   fi
 
-  echo "Waiting ${CERTBOT_RENEW_INTERVAL}..."
-  sleep "${CERTBOT_RENEW_INTERVAL}"
+  echo "Waiting $CERTBOT_RENEW_INTERVAL..."
+  sleep "$CERTBOT_RENEW_INTERVAL"
 done
