@@ -38,7 +38,9 @@ services:
     <<: *default-logging
     image: certbot/certbot:v5.2.2
     restart: unless-stopped
-    env_file: .env
+    environment:
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
+      CERTBOT_RENEW_INTERVAL: ${CERTBOT_RENEW_INTERVAL}
     tmpfs:
       - /var/lib/letsencrypt
     volumes:
