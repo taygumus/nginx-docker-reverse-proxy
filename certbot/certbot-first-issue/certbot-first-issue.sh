@@ -29,7 +29,7 @@ for name in $CERT_SAN; do
   set -- "$@" -d "$name"
 done
 
-exec certbot certonly \
+if certbot certonly \
   --webroot \
   --webroot-path /var/www/certbot \
   --email "$LETSENCRYPT_EMAIL" \
@@ -37,4 +37,9 @@ exec certbot certonly \
   --no-eff-email \
   --non-interactive \
   --cert-name "$DOMAIN" \
-  "$@"
+  "$@"; then
+  touch /var/www/certbot/.nginx-reload
+  echo "Certificate issued/updated, requested nginx reload"
+else
+  exit $?
+fi

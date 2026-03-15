@@ -15,6 +15,7 @@ while true; do
   if certbot renew \
     --webroot \
     -w /var/www/certbot \
+    --deploy-hook "touch /var/www/certbot/.nginx-reload" \
     --quiet; then
     echo "Renewal check completed"
   else

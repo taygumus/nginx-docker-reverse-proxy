@@ -18,6 +18,8 @@ services:
       - no-new-privileges:true
     environment:
       DOMAINS: ${DOMAINS}
+      RELOAD_MARKER_FILE: /var/www/certbot/.nginx-reload
+      RELOAD_POLL_INTERVAL: ${RELOAD_POLL_INTERVAL}
     ports:
       - "80:80"
       - "443:443"
@@ -39,8 +41,8 @@ services:
     image: certbot/certbot:v5.2.2
     restart: unless-stopped
     environment:
-      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
       CERTBOT_RENEW_INTERVAL: ${CERTBOT_RENEW_INTERVAL}
+      LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
     tmpfs:
       - /var/lib/letsencrypt
     volumes:
