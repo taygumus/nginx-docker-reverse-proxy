@@ -4,9 +4,12 @@ set -e
 CERT_SAN="$1"
 
 if [ -z "$CERT_SAN" ]; then
-    echo "Error: CERT_SAN is required (Example: CERT_SAN=\"example.com www.example.com api.example.com\")" >&2
-    exit 1
+  echo "Error: CERT_SAN is required" >&2
+  echo "Example: CERT_SAN=\"example.com www.example.com api.example.com\"" >&2
+  exit 1
 fi
+
+: "${LETSENCRYPT_EMAIL:?LETSENCRYPT_EMAIL must be set}"
 
 DOMAIN="$(echo "$CERT_SAN" | awk '{print $1}')"
 
@@ -26,7 +29,7 @@ for name in $CERT_SAN; do
   set -- "$@" -d "$name"
 done
 
-exec certbot certonly \
+if certbot certonly \
   --webroot \
   --webroot-path /var/www/certbot \
   --email "$LETSENCRYPT_EMAIL" \
@@ -34,4 +37,9 @@ exec certbot certonly \
   --no-eff-email \
   --non-interactive \
   --cert-name "$DOMAIN" \
-  "$@"
+  "$@"; then
+  touch /var/www/certbot/.nginx-reload
+  echo "Certificate issued/updated, requested nginx reload"
+else
+  exit $?
+fi
