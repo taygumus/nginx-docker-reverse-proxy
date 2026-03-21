@@ -1,7 +1,7 @@
 COMPOSE := docker compose
 
 up:
-	@$(COMPOSE) up -d
+	@$(COMPOSE) up -d --build
 
 down:
 	@$(COMPOSE) down
