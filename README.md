@@ -1,6 +1,7 @@
 # Nginx Docker Reverse Proxy
 
 [![CI](https://github.com/taygumus/nginx-docker-reverse-proxy/actions/workflows/ci-lint.yml/badge.svg)](https://github.com/taygumus/nginx-docker-reverse-proxy/actions/workflows/ci-lint.yml)
+[![Version](https://img.shields.io/github/v/tag/taygumus/nginx-docker-reverse-proxy?label=version)](https://github.com/taygumus/nginx-docker-reverse-proxy/tags)
 ![Status](https://img.shields.io/badge/status-production--ready-brightgreen)
 [![License](https://img.shields.io/github/license/taygumus/nginx-docker-reverse-proxy?color=blue)](LICENSE.txt)
 
@@ -239,7 +240,7 @@ Implementation references:
 - [`certbot/certbot-first-issue/certbot-first-issue.sh`](certbot/certbot-first-issue/certbot-first-issue.sh)
 - [`certbot/certbot-renew/certbot-renew.sh`](certbot/certbot-renew/certbot-renew.sh)
 
-## Companion Stack (WordPress)
+## Companion Stack
 
 This proxy is designed to integrate cleanly with
 [wp-docker-stack](https://github.com/taygumus/wp-docker-stack).
