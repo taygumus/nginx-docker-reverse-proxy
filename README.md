@@ -2,143 +2,70 @@
 
 [![CI](https://github.com/taygumus/nginx-docker-reverse-proxy/actions/workflows/ci-lint.yml/badge.svg)](https://github.com/taygumus/nginx-docker-reverse-proxy/actions/workflows/ci-lint.yml)
 ![Status](https://img.shields.io/badge/status-production--ready-brightgreen)
-[![Companion Stack](https://img.shields.io/badge/companion-wp--docker--stack-0a7bbb)](https://github.com/taygumus/wp-docker-stack)
+[![License](https://img.shields.io/github/license/taygumus/nginx-docker-reverse-proxy?color=blue)](LICENSE.txt)
 
-Production-ready Nginx + Certbot reverse proxy for Docker Compose
-deployments.
+A practical reverse proxy for Docker deployments.
 
-This repository exposes one or more containerized applications on a shared
-Docker network, terminates TLS with Let's Encrypt, and keeps certificates fresh
-with automatic renewal plus Nginx hot reload.
-
-It is especially useful as the public edge layer in front of companion stacks
-such as [wp-docker-stack](https://github.com/taygumus/wp-docker-stack), but it
-works with any backend reachable through Docker DNS on the same external
-network.
-
-## TL;DR
-
-1. Copy the templates:
-
-   ```sh
-   cp .env.example .env
-   cp nginx/default.conf.example nginx/default.conf
-   ```
-
-2. Edit `.env` and set `DOMAINS` plus `LETSENCRYPT_EMAIL`.
-3. Edit `nginx/default.conf` and set `server_name`, certificate paths, and
-   `proxy_pass`.
-4. Create the shared network:
-
-   ```sh
-   docker network create proxy
-   ```
-
-5. Start the stack:
-
-   ```sh
-   make up
-   ```
-
-6. Issue the first certificate:
-
-   ```sh
-   make certbot-first-issue CERT_SAN="example.com www.example.com"
-   ```
-
-7. Open `https://example.com`.
-
-Important: `DOMAINS` should contain the primary certificate names only, while
-`CERT_SAN` contains the full Subject Alternative Name list for one
-certificate.
+This project sits in front of application services, secures public traffic with
+automatic HTTPS certificates, and routes each request to the correct backend
+service. It is designed to stay explicit, reliable, and easy to operate in
+production.
 
 ## Table of Contents
 
 - [Overview](#overview)
-- [Why This Repository](#why-this-repository)
-- [Prerequisites](#prerequisites)
-- [Detailed Quick Start](#detailed-quick-start)
-- [First-Issue Checklist](#first-issue-checklist)
-- [Use It with wp-docker-stack](#use-it-with-wp-docker-stack)
-- [Configuration](#configuration)
+- [Quick Start](#quick-start)
+- [Configuration Reference](#configuration-reference)
 - [Operational Commands](#operational-commands)
-- [Certificate Lifecycle](#certificate-lifecycle)
+- [Add New Domain/App](#add-new-domainapp)
+- [Validation Checklist](#validation-checklist)
+- [Troubleshooting](#troubleshooting)
 - [Architecture](#architecture)
-- [Repository Layout](#repository-layout)
-- [CI and Quality Gates](#ci-and-quality-gates)
-- [Contributing](#contributing)
+- [Certificate Lifecycle](#certificate-lifecycle)
+- [Companion Stack (WordPress)](#companion-stack-wordpress)
+- [CI Quality Gates](#ci-quality-gates)
 
 ## Overview
 
-This project provides a small, explicit edge layer for Docker Compose
-environments.
+Why this repository exists:
 
-Instead of relying on automatic service discovery, you keep full control of the
-public routing layer in
-[`nginx/default.conf.example`](nginx/default.conf.example) while Certbot
-handles certificate issuance and renewal through the HTTP-01 webroot challenge.
+- keep reverse proxy behavior explicit and auditable
+- bootstrap HTTPS safely even before real certificates are issued
+- automate renewal and trigger Nginx reload without container restarts
+- provide a reusable edge layer for Dockerized apps on a shared external network
 
-The repository is built around two long-running services:
+Best fit:
 
-- `nginx` serves ports `80` and `443`, proxies requests to upstream containers,
-  serves the ACME challenge directory, and reloads itself when certificates
-  change.
-- `certbot` runs a renewal loop and shares certificate state plus ACME webroot
-  data with Nginx.
+- explicit Nginx configuration control is preferred (not auto-generated routing)
+- one or more app stacks run behind a single public entrypoint
+- a simple, production-focused TLS edge for Compose is required
 
-## Why This Repository
+## Quick Start
 
-- Explicit Nginx configuration. Routing stays readable, reviewable, and easy to
-  reason about.
-- Safe TLS bootstrap. Dummy certificates let Nginx start before real
-  certificates exist.
-- Automatic renewals. Certbot renews certificates in the background without
-  manual intervention.
-- Hot reload on change. Nginx reloads when a certificate is issued or renewed,
-  without a full container restart.
-- Clean Compose integration. Any backend stack attached to the same external
-  `proxy` network can become an upstream.
+### Prerequisites
 
-## Prerequisites
-
-- Docker Engine
-- Docker Compose v2
-- GNU Make is recommended but optional
-- A public DNS record pointing your domain to the host that runs this stack
+- Docker Engine + Docker Compose
+- Public DNS records pointing to this host
 - Ports `80` and `443` reachable from the internet
-- A shared external Docker network named `proxy`
-- At least one backend service attached to `proxy` with a stable hostname or
-  network alias
+- GNU Make (recommended for the command shortcuts)
 
-Commands in this README use a POSIX-like shell.
-
-If you work in PowerShell, replace `cp` with `Copy-Item`.
-
-## Detailed Quick Start
-
-### 1. Clone the repository
+### 1. Prepare local files
 
 ```sh
 git clone https://github.com/taygumus/nginx-docker-reverse-proxy.git
 cd nginx-docker-reverse-proxy
-```
-
-### 2. Create local configuration files
-
-```sh
 cp .env.example .env
 cp nginx/default.conf.example nginx/default.conf
 ```
 
-The real `.env` file and `nginx/default.conf` are gitignored on purpose, so you
-can keep deployment-specific values outside version control.
+PowerShell note: if `cp` is unavailable, use `Copy-Item`.
 
-### 3. Configure `.env`
+### 2. Configure environment variables
 
-Open [`.env.example`](.env.example) as a reference and set at least:
+Edit `.env` and set at least:
 
-- `DOMAINS`: space-separated list of primary certificate names
-- `LETSENCRYPT_EMAIL`: email used by Let's Encrypt for expiry notices
+- `DOMAINS` (space-separated primary domains)
+- `LETSENCRYPT_EMAIL`
 
 Example:
 
@@ -147,242 +74,131 @@ DOMAINS=example.com api.example.com
 LETSENCRYPT_EMAIL=admin@example.com
 ```
 
-### 4. Configure `nginx/default.conf`
+### 3. Configure Nginx reverse proxy blocks
 
-Start from
-[`nginx/default.conf.example`](nginx/default.conf.example) and adjust the HTTPS
-server blocks for your real applications.
+Edit `nginx/default.conf` and define one HTTPS `server` block per certificate.
 
-For each certificate:
+Required checks:
 
-- create one HTTPS `server` block
-- set `server_name` to the primary domain plus all SANs
-- point `ssl_certificate` and `ssl_certificate_key` to the primary domain's
-  live directory
-- set `proxy_pass` to the upstream hostname or alias on network `proxy`
+- `server_name` includes all names for that certificate
+- certificate path matches primary domain:
+  `/etc/letsencrypt/live/<primary-domain>/...`
+- `proxy_pass` points to a container hostname/alias reachable on network `proxy`
 
-Example:
+Example upstream:
 
 ```nginx
-server {
-  listen 443 ssl;
-  http2 on;
-  server_name example.com www.example.com;
-
-  ssl_certificate     /etc/letsencrypt/live/example.com/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/example.com/privkey.pem;
-
-  location / {
-    proxy_pass http://example-app:80;
-
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto https;
-  }
+location / {
+  proxy_pass http://my-app-nginx:80;
 }
 ```
 
-The HTTP block that serves `/.well-known/acme-challenge/` and redirects to HTTPS
-usually does not need to change.
-
-### 5. Create the shared network
+### 4. Start the stack
 
 ```sh
 docker network create proxy
-```
-
-If the network already exists, Docker will report it and you can continue.
-
-### 6. Start the stack
-
-```sh
 make up
 ```
 
-Equivalent raw Compose command:
+If `proxy` already exists, Docker may print an "already exists" message. This is
+safe and can be ignored.
 
-```sh
-docker compose up -d --build
-```
-
-### 7. Issue the first certificate
-
-Run the first-issue command once for each certificate you want to create:
+### 5. Issue the first certificate
 
 ```sh
 make certbot-first-issue CERT_SAN="example.com www.example.com"
 ```
 
-Key rule: the first hostname in `CERT_SAN` becomes the certificate name and the
-directory under `/etc/letsencrypt/live/<name>/`.
+Important:
 
-That first hostname must match:
+- `CERT_SAN` is a command argument, not an `.env` variable
+- the first name in `CERT_SAN` becomes the certificate name
+- that name must match the Nginx certificate path
 
-- the certificate path used in `nginx/default.conf`
-- one of the entries in `DOMAINS`
-
-### 8. Validate renewal behavior
-
-Optional but recommended:
+### 6. Validate renewal path
 
 ```sh
 make certbot-dry-run
-```
-
-### 9. Inspect logs
-
-```sh
 make logs
 ```
 
-## First-Issue Checklist
+## Configuration Reference
 
-Before running `certbot-first-issue`, verify these points:
+Environment variables are sourced from [`.env.example`](.env.example).
 
-- your domain already resolves publicly to the host that runs this stack
-- port `80` is reachable from the internet for the HTTP-01 challenge
-- `make up` has already started Nginx
-- `nginx/default.conf` already references the same primary domain used in
-  `CERT_SAN`
-- the upstream container is attached to network `proxy`
-
-## Use It with wp-docker-stack
-
-This repository is a natural public edge in front of
-[wp-docker-stack](https://github.com/taygumus/wp-docker-stack).
-
-The production profile of `wp-docker-stack` exposes its internal Nginx service
-on the external `proxy` network with alias `wp-docker-stack-nginx`.
-
-That means your reverse proxy block can target it directly:
-
-```nginx
-server {
-  listen 443 ssl;
-  http2 on;
-  server_name blog.example.com www.blog.example.com;
-
-  ssl_certificate     /etc/letsencrypt/live/blog.example.com/fullchain.pem;
-  ssl_certificate_key /etc/letsencrypt/live/blog.example.com/privkey.pem;
-
-  location / {
-    proxy_pass http://wp-docker-stack-nginx:80;
-
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto https;
-  }
-}
-```
-
-Typical flow:
-
-1. Start `wp-docker-stack` in production mode.
-2. Make sure both repositories use the same external `proxy` network.
-3. Point this reverse proxy at `wp-docker-stack-nginx:80`.
-4. Issue the certificate with:
-
-   ```sh
-   make certbot-first-issue \
-     CERT_SAN="blog.example.com www.blog.example.com"
-   ```
-
-## Configuration
-
-### Environment variables
-
-Required variables:
-
-- `DOMAINS`: space-separated list of primary certificate names used for dummy
-  certificate bootstrap and symlink setup
-- `LETSENCRYPT_EMAIL`: Let's Encrypt contact email
-
-Optional variables:
-
-- `CERTBOT_RENEW_INTERVAL`: how often Certbot checks for renewals
-  (default: `12h`)
-- `RELOAD_POLL_INTERVAL`: how often Nginx checks for the reload marker file
-  (default: `10`)
-- `NGINX_CPUS`, `NGINX_MEM_LIMIT`: declared resource limits for `nginx`
-- `CERTBOT_CPUS`, `CERTBOT_MEM_LIMIT`: declared resource limits for `certbot`
-- `LOG_SIZE`, `LOG_FILES`: container log rotation settings
-
-See [`.env.example`](.env.example) for the full reference.
-
-### Domain naming rules
-
-`DOMAINS` and `CERT_SAN` solve different problems:
-
-- `DOMAINS` tells Nginx which primary domain directories need dummy
-  certificates at startup.
-- `CERT_SAN` tells Certbot which names belong to one real certificate.
-- The first entry in `CERT_SAN` is the certificate name.
-- Your `ssl_certificate` path must use that same primary name.
-
-Example:
-
-- `DOMAINS=example.com api.example.com`
-- `CERT_SAN="example.com www.example.com"`
-- `CERT_SAN="api.example.com"`
-
-### Nginx configuration rules
-
-- Keep the HTTP server block dedicated to ACME challenge handling and HTTPS
-  redirection.
-- Use one HTTPS server block per certificate.
-- Make sure the primary domain used in
-  `/etc/letsencrypt/live/<primary-domain>/` also appears in `server_name`.
-- Use a Docker hostname or network alias in `proxy_pass`, not `localhost`.
-- Keep `nginx/default.conf` deployment-specific. The repository ships the
-  example file, not a one-size-fits-all production vhost.
+| Variable | Required | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `DOMAINS` | Yes | `example.com myproject.io anotherexample.me` | Space-separated domains used for dummy certificate bootstrap. |
+| `LETSENCRYPT_EMAIL` | Yes | `admin@example.com` | Email for Let's Encrypt expiry notifications. |
+| `CERTBOT_RENEW_INTERVAL` | No | `12h` | Interval between renewal checks. |
+| `RELOAD_POLL_INTERVAL` | No | `10` | Seconds between Nginx reload marker checks. |
+| `NGINX_CPUS` | No | `0.5` | Declared CPU limit for Nginx service. |
+| `NGINX_MEM_LIMIT` | No | `128M` | Declared memory limit for Nginx service. |
+| `CERTBOT_CPUS` | No | `0.5` | Declared CPU limit for Certbot service. |
+| `CERTBOT_MEM_LIMIT` | No | `128M` | Declared memory limit for Certbot service. |
+| `LOG_SIZE` | No | `10m` | Max size per rotated container log file. |
+| `LOG_FILES` | No | `3` | Number of log files retained. |
 
 ## Operational Commands
 
-`Makefile` is the main operator interface:
+| Command | Purpose |
+| :--- | :--- |
+| `make up` | Build and start Nginx + Certbot in detached mode. |
+| `make down` | Stop the stack. |
+| `make logs` | Follow logs from all services. |
+| `make certbot-first-issue CERT_SAN="..."` | Issue or update one certificate set. |
+| `make certbot-dry-run` | Simulate renewal with `certbot renew --dry-run`. |
 
-- `make up`: build and start the stack
-- `make down`: stop the stack
-- `make logs`: stream service logs
-- `make certbot-first-issue CERT_SAN="example.com www.example.com"`:
-  issue or update one certificate
-- `make certbot-dry-run`: simulate renewal with `certbot renew --dry-run`
+## Add New Domain/App
 
-If you do not use `make`, you can run the first-issue command directly:
+Use this workflow whenever you onboard a new backend application.
 
-```sh
-docker compose run --rm \
-  --entrypoint sh \
-  certbot \
-  /certbot/certbot-first-issue/certbot-first-issue.sh \
-  "example.com www.example.com"
-```
+1. Join the backend service to external network `proxy` and expose a stable
+   hostname or alias.
+2. Add a new HTTPS `server` block in `nginx/default.conf` with:
+   - `server_name` containing the primary domain and SANs
+   - `ssl_certificate` and `ssl_certificate_key` under
+     `/etc/letsencrypt/live/<primary-domain>/...`
+   - `proxy_pass` pointing to the backend hostname/alias on network `proxy`
+3. Reload the stack configuration:
 
-## Certificate Lifecycle
+   ```sh
+   make up
+   ```
 
-The certificate workflow is intentionally explicit and easy to inspect:
+4. Issue the certificate with the same domain order used in `server_name`:
 
-1. Nginx starts first.
-2. The entry script
-   [`10-create-dummy-cert.sh`](nginx/entrypoint/10-create-dummy-cert.sh)
-   creates one-day dummy certificates for the domains listed in `DOMAINS`.
-3. The entry script
-   [`20-setup-cert-links.sh`](nginx/entrypoint/20-setup-cert-links.sh)
-   symlinks those dummy files into `/etc/letsencrypt/live/<domain>/` when a
-   real certificate is not there yet.
-4. Nginx can now boot successfully with TLS server blocks already enabled.
-5. The one-off script
-   [`certbot-first-issue.sh`](certbot/certbot-first-issue/certbot-first-issue.sh)
-   requests the real certificate through the shared webroot.
-6. When issuance succeeds, Certbot touches a reload marker file in the shared
-   `certbot_www` volume.
-7. The watcher
-   [`30-nginx-reload-watcher.sh`](nginx/entrypoint/30-nginx-reload-watcher.sh)
-   consumes the marker and reloads Nginx.
-8. The long-running renewal service
-   [`certbot-renew.sh`](certbot/certbot-renew/certbot-renew.sh)
-   repeats `certbot renew` on a schedule and reuses the same reload hook.
+   ```sh
+   make certbot-first-issue CERT_SAN="new.example.com www.new.example.com"
+   ```
+
+5. Verify logs and renewal path:
+
+   ```sh
+   make logs
+   make certbot-dry-run
+   ```
+
+## Validation Checklist
+
+After initial deployment (or after domain changes), validate these points:
+
+- `docker compose ps` shows `nginx` and `certbot` as running.
+- `docker compose exec nginx nginx -t` returns valid Nginx config.
+- `make certbot-first-issue CERT_SAN="..."` completes without ACME errors.
+- `make certbot-dry-run` completes successfully.
+- `docker compose logs --tail=100 nginx certbot` shows:
+  - certificate issuance/renewal success
+  - reload marker consumption (`Nginx reloaded (marker consumed)`).
+
+## Troubleshooting
+
+| Symptom | Likely cause | What to check |
+| :--- | :--- | :--- |
+| HTTP-01 challenge fails (`unauthorized` or `404`) | DNS/port routing issue, or ACME location missing | Confirm A/AAAA records point to this host, ports `80/443` are open, and `/.well-known/acme-challenge/` location exists in HTTP block. |
+| `cannot load certificate .../live/<domain>/fullchain.pem` | Primary certificate name mismatch | Ensure first domain in `CERT_SAN` matches `<domain>` used in Nginx cert paths. |
+| Upstream host not found (`host not found in upstream`) | Backend service not reachable on `proxy` network | Confirm backend container joins external network `proxy` with the hostname/alias used in `proxy_pass`. |
+| Renewal runs but Nginx still serves old cert | Reload marker not consumed | Check shared `certbot_www` volume mount and `30-nginx-reload-watcher.sh` logs in `nginx`. |
 
 ## Architecture
 
@@ -402,48 +218,47 @@ At runtime:
 - Nginx and Certbot share `/etc/letsencrypt` through the `certbot_conf` volume
 - Nginx and Certbot share the ACME webroot and reload marker through the
   `certbot_www` volume
-- your application stack shares traffic with this proxy through the external
+- application stacks share traffic with this proxy through the external
   Docker network `proxy`
 
-## Repository Layout
+## Certificate Lifecycle
 
-- [`docker-compose.yml`](docker-compose.yml): main service definition for Nginx,
-  Certbot, shared volumes, and external network wiring
-- [`Makefile`](Makefile): convenience commands for operators
-- [`nginx/Dockerfile`](nginx/Dockerfile): Nginx image extension with `openssl`
-  for dummy certificate creation
-- [`nginx/default.conf.example`](nginx/default.conf.example): editable reverse
-  proxy template
-- [`nginx/entrypoint`](nginx/entrypoint): startup scripts for dummy certs,
-  symlinks, and reload watching
-- [`certbot/certbot-first-issue`](certbot/certbot-first-issue): one-off initial
-  issuance logic
-- [`certbot/certbot-renew`](certbot/certbot-renew): long-running renewal loop
-- [`certbot/certbot-dry-run`](certbot/certbot-dry-run): renewal simulation
-- [`.github/workflows/ci-lint.yml`](.github/workflows/ci-lint.yml): CI workflow
-  for shell, Compose, Makefile, and Markdown checks
+1. Nginx starts and mounts shared cert/webroot volumes.
+2. Entry scripts create and link temporary dummy certificates for domains in
+   `DOMAINS`.
+3. Certbot obtains real certificates via HTTP-01 challenge.
+4. Certbot writes the reload marker file.
+5. Nginx watcher detects the marker and runs `nginx -s reload`.
+6. Periodic renewals repeat this mechanism automatically.
 
-## CI and Quality Gates
+Implementation references:
 
-The GitHub Actions workflow validates the repository with:
+- [`nginx/entrypoint/10-create-dummy-cert.sh`](nginx/entrypoint/10-create-dummy-cert.sh)
+- [`nginx/entrypoint/20-setup-cert-links.sh`](nginx/entrypoint/20-setup-cert-links.sh)
+- [`nginx/entrypoint/30-nginx-reload-watcher.sh`](nginx/entrypoint/30-nginx-reload-watcher.sh)
+- [`certbot/certbot-first-issue/certbot-first-issue.sh`](certbot/certbot-first-issue/certbot-first-issue.sh)
+- [`certbot/certbot-renew/certbot-renew.sh`](certbot/certbot-renew/certbot-renew.sh)
 
-- `shellcheck` for shell scripts
-- `yamllint` for Compose files
-- `docker compose config` for Compose resolution
-- `checkmake` for the `Makefile`
-- `markdownlint` for Markdown files
+## Companion Stack (WordPress)
 
-This keeps the project friendly to both operators and contributors.
+This proxy is designed to integrate cleanly with
+[wp-docker-stack](https://github.com/taygumus/wp-docker-stack).
 
-## Contributing
+In its production profile, the WordPress stack publishes alias
+`wp-docker-stack-nginx` on the same external `proxy` network, so the Nginx
+upstream can be:
 
-Issues and pull requests are welcome.
+```nginx
+proxy_pass http://wp-docker-stack-nginx:80;
+```
 
-When proposing changes, please keep the project aligned with its core design:
+## CI Quality Gates
 
-- explicit Nginx routing instead of opaque auto-discovery
-- script-driven operational behavior that stays easy to audit
-- documentation updates when setup, certificates, or operator workflows change
+The workflow in
+[`.github/workflows/ci-lint.yml`](.github/workflows/ci-lint.yml) checks:
 
-If your change affects shell scripts, Compose structure, or Markdown, make sure
-the CI checks still pass.
+- shell scripts (`shellcheck`)
+- compose YAML (`yamllint`)
+- compose resolution (`docker compose config`)
+- `Makefile` quality (`checkmake`)
+- markdown linting (`markdownlint`)
