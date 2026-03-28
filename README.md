@@ -5,7 +5,8 @@
 ![Status](https://img.shields.io/badge/status-production--ready-brightgreen)
 [![License](https://img.shields.io/github/license/taygumus/nginx-docker-reverse-proxy?color=blue)](LICENSE.txt)
 
-A practical reverse proxy for Docker deployments.
+Production-ready Nginx reverse proxy for Docker Compose with automatic Let's
+Encrypt HTTPS and Certbot renewals.
 
 This project sits in front of application services, secures public traffic with
 automatic HTTPS certificates, and routes each request to the correct backend
@@ -23,7 +24,7 @@ production.
 - [Troubleshooting](#troubleshooting)
 - [Architecture](#architecture)
 - [Certificate Lifecycle](#certificate-lifecycle)
-- [Companion Stack (WordPress)](#companion-stack-wordpress)
+- [Companion Stack](#companion-stack)
 - [CI Quality Gates](#ci-quality-gates)
 
 ## Overview
