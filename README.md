@@ -3,7 +3,7 @@
 [![CI](https://github.com/taygumus/nginx-docker-reverse-proxy/actions/workflows/ci-lint.yml/badge.svg)](https://github.com/taygumus/nginx-docker-reverse-proxy/actions/workflows/ci-lint.yml)
 [![Version](https://img.shields.io/github/v/tag/taygumus/nginx-docker-reverse-proxy?label=version)](https://github.com/taygumus/nginx-docker-reverse-proxy/tags)
 ![Status](https://img.shields.io/badge/status-production--ready-brightgreen)
-![License](https://img.shields.io/github/license/taygumus/nginx-docker-reverse-proxy?color=red)
+![License](https://img.shields.io/github/license/taygumus/nginx-docker-reverse-proxy)
 
 Production-ready Nginx reverse proxy for Docker Compose with automatic Let's
 Encrypt HTTPS and Certbot renewals.
